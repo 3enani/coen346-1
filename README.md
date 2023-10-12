@@ -3,7 +3,7 @@ Assignment 1 Coen346
 
 Contributors:  
 Ahmed Enani  
-Tommy Morisson
+Tommy Morrisson
 
 Scheduling algorithm  
 Languages:  
