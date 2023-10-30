@@ -1,3 +1,5 @@
+import java.util.List;
+import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class Task
@@ -14,16 +16,20 @@ public class Task
     private int startTime;
     private int responseTime;
 
+    private List<Task> children;
+
     /**
      * We use an atomic integer to assign each task a unique task id.
      */
     private static AtomicInteger tidAllocator = new AtomicInteger();
 
-    public Task(String name, int priority, int burst, int arrival) {
+    public Task(String name, int priority, int burst, int arrival, List<Task> children) {
         this.name = name;
         this.priority = priority;
         this.burst = burst;
         this.arrival = arrival;
+        this.children = children;
+
 
         this.tid = tidAllocator.getAndIncrement();
     }
@@ -54,6 +60,14 @@ public class Task
     public int getArrival() {return arrival;}
     public int getStartTime() {return startTime;}
     public int getResponseTime() {return responseTime;}
+
+    public void addChild (Task child) {
+        children.add(child);
+    }
+
+    public List<Task> getChildren() {
+        return children;
+}
 
     /**
      * Appropriate setters

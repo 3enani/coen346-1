@@ -1,5 +1,3 @@
-package ca.concordia.processmanagement;
-
 import java.io.IOException;
 
 class PIDManager {

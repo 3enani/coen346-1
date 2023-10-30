@@ -1,40 +1,60 @@
-import java.util.List;
-import java.util.Queue;
-import java.util.LinkedList;
-import java.util.Comparator;
-import java.util.PriorityQueue;
+import java.util.*;
+
 public class PriorityRR implements Algorithm {
-    private List<Task> taskQueue;
+    private List<Queue<Task>> priorityQueues;
     private int timeQuantum;
 
     public PriorityRR(List<Task> taskQueue, int timeQuantum) {
-        //   public PriorityRR(List<Task> taskQueue) {
-
-
-        this.taskQueue = taskQueue;
         this.timeQuantum = timeQuantum;
+
+        int maxPriorityLevel = 0;
+        for (Task task : taskQueue) {
+            maxPriorityLevel = Math.max(maxPriorityLevel, task.getPriority());
+        }
+        this.priorityQueues = new ArrayList<>();
+        for (int i = 0; i < maxPriorityLevel; i++) {
+            priorityQueues.add(new LinkedList<>());
+        }
+
+        for (Task task : taskQueue) {
+            int priority = task.getPriority();
+            priorityQueues.get(priority - 1).offer(task); // Fixed index
+        }
     }
 
     @Override
     public void schedule() {
-        PriorityQueue<Task> priorityQueue = new PriorityQueue<>(Comparator.comparing(Task::getPriority));
-        priorityQueue.addAll(taskQueue);
-
         int currentTime = 0;
         double totalWaitingTime = 0;
         double totalResponseTime = 0;
 
         System.out.println("Priority Round Robin scheduling with time quantum " + timeQuantum + ")");
-        while (!priorityQueue.isEmpty()) {
-            Task currentTask = priorityQueue.poll();
 
+        // Continue scheduling until all priority queues are empty
+        while (!priorityQueues.isEmpty()) {
+            Task currentTask = pickNextTask(); // Get the task with the highest priority
+
+            if (currentTask == null) {
+                // If there are no tasks remaining, advance the time to the next task arrival
+                int nextArrivalTime = Integer.MAX_VALUE;
+                for (Queue<Task> queue : priorityQueues) {
+                    if (!queue.isEmpty()) {
+                        nextArrivalTime = Math.min(nextArrivalTime, queue.peek().getArrival());
+                    }
+                }
+                currentTime = nextArrivalTime;
+                continue;
+            }
+
+            if (currentTask.getArrival() > currentTime) {
+                currentTime = currentTask.getArrival();
+            }
             System.out.println("Time " + currentTime + ": Running task: " + currentTask.getName());
-            printTaskStates(currentTime, priorityQueue);
+            printTaskStates(currentTime, priorityQueues.get(currentTask.getPriority() - 1)); // Fixed parameter
 
             if (currentTask.getBurst() > timeQuantum) {
                 currentTime += timeQuantum;
                 currentTask.decreaseBurstTime(timeQuantum);
-                priorityQueue.offer(currentTask);
             } else {
                 currentTime += currentTask.getBurst();
                 currentTask.setCompletionTime(currentTime);
@@ -48,22 +68,22 @@ public class PriorityRR implements Algorithm {
                 currentTask.setResponseTime(responseTime);
                 totalResponseTime += responseTime;
 
+                priorityQueues.get(currentTask.getPriority() - 1).poll(); // Remove the completed task
             }
-
-            int turnaroundTime = currentTask.getCompletionTime() - currentTask.getArrival();
-            currentTask.setTurnaroundTime(turnaroundTime);
-
-            currentTask.setStartTime(currentTime);
         }
 
         double totalTurnaroundTime = 0;
-        for (Task task : taskQueue) {
-            totalTurnaroundTime += task.getTurnaround();
+        int taskCount = 0;
+        for (Queue<Task> queue : priorityQueues) {
+            for (Task task : queue) {
+                totalTurnaroundTime += task.getTurnaround();
+                taskCount++;
+            }
         }
 
-        double averageTurnaroundTime = totalTurnaroundTime / taskQueue.size();
-        double averageWaitingTime = totalWaitingTime / taskQueue.size();
-        double averageResponseTime = totalResponseTime / taskQueue.size();
+        double averageTurnaroundTime = totalTurnaroundTime / taskCount;
+        double averageWaitingTime = totalWaitingTime / taskCount;
+        double averageResponseTime = totalResponseTime / taskCount;
 
         System.out.println("Average Turnaround Time: " + averageTurnaroundTime);
         System.out.println("Average Waiting Time: " + averageWaitingTime);
@@ -73,27 +93,27 @@ public class PriorityRR implements Algorithm {
     @Override
     public Task pickNextTask() {
         Task nextTask = null;
-        for (Task task : taskQueue) {
-            if (nextTask == null || task.getPriority() > nextTask.getPriority()) {
-                nextTask = task;
+        for (Queue<Task> priorityQueue : priorityQueues) {
+            if (!priorityQueue.isEmpty()) {
+                Task task = priorityQueue.peek();
+                if (nextTask == null || task.getPriority() > nextTask.getPriority()) {
+                    nextTask = task;
+                }
             }
         }
         return nextTask;
     }
 
-    private void printTaskStates(int currentTime, PriorityQueue<Task> priorityQueue) {
+    private void printTaskStates(int currentTime, Queue<Task> priorityQueue) {
         System.out.print("Time " + currentTime + ": Running: " + (priorityQueue.isEmpty() ? "-" : priorityQueue.peek().getName()));
 
         if (priorityQueue.size() > 1) {
             System.out.print(", Ready: ");
-            PriorityQueue<Task> readyTasks = new PriorityQueue<>(priorityQueue);
+            Queue<Task> readyTasks = new LinkedList<>(priorityQueue);
             readyTasks.poll(); // Remove the currently running task
             while (!readyTasks.isEmpty()) {
                 Task task = readyTasks.poll();
-                Integer arrivalTime = task.getArrival();
-                if (arrivalTime == null || arrivalTime <= currentTime) {
-                    System.out.print(task.getName() + " ");
-                }
+                System.out.print(task.getName() + " ");
             }
         } else {
             System.out.print(", Ready: -");
@@ -102,18 +122,20 @@ public class PriorityRR implements Algorithm {
         System.out.print(", Waiting: ");
         boolean anyTasksWaiting = false;
 
-        for (Task task : taskQueue) {
-            Integer arrivalTime = task.getArrival();
-            if (arrivalTime != null && arrivalTime > currentTime && arrivalTime <= currentTime + timeQuantum) {
-                System.out.print(task.getName() + " ");
-                anyTasksWaiting = true;
+        for (Queue<Task> queue : priorityQueues) {
+            for (Task task : queue) {
+                Integer arrivalTime = task.getArrival();
+                if (arrivalTime != null && arrivalTime > currentTime && arrivalTime <= currentTime + timeQuantum) {
+                    System.out.print(task.getName() + " ");
+                    anyTasksWaiting = true;
+                }
             }
-        }
 
-        if (!anyTasksWaiting) {
-            System.out.print("-");
-        }
+            if (!anyTasksWaiting) {
+                System.out.print("-");
+            }
 
-        System.out.println();
+            System.out.println();
+        }
     }
 }

@@ -5,11 +5,14 @@ public class RR implements Algorithm {
     private int timeQuantum;
 
      public RR(List<Task> taskQueue,  int timeQuantum) {
- //   public RR(List<Task> taskQueue) {
+
 
         this.taskQueue = taskQueue;
         this.timeQuantum = timeQuantum;
-    }
+
+         Collections.sort(this.taskQueue, Comparator.comparing(Task::getArrival));
+
+     }
 
     @Override
     public void schedule() {
@@ -31,11 +34,11 @@ public class RR implements Algorithm {
                 // Task arrives later, adjust the current time
                 currentTime = currentTask.getArrival();
             }
-
+            int remainingBurst = currentTask.getBurst();
             System.out.println("Time " + currentTime + ": Running task: " + currentTask.getName());
 
-            if (currentTask.getBurst() <= timeQuantum) {
-                currentTime += currentTask.getBurst();
+            if (remainingBurst <= timeQuantum) {
+                currentTime += remainingBurst;
                 currentTask.setCompletionTime(currentTime);
                 System.out.println("Time " + currentTime + ": Completed task: " + currentTask.getName());
                 totalTurnaroundTime += currentTask.getCompletionTime() - currentTask.getArrival();
@@ -50,10 +53,11 @@ public class RR implements Algorithm {
                 totalResponseTime += responseTime;
             } else {
                 // Task needs more time, enqueue it again
+
                 currentTime += timeQuantum;
-                currentTask.decreaseBurstTime(timeQuantum);
-                readyQueue.offer(currentTask);
-            }
+                    currentTask.decreaseBurstTime(timeQuantum);
+                    readyQueue.offer(currentTask);
+                }
 
             printTaskStates(currentTime, readyQueue);
 
