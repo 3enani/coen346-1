@@ -57,7 +57,7 @@ public class FCFS implements Algorithm {
     }
 
     @Override
-    public Task pickNextTask() {
+    public Task pickNextTask(int currentTime) {
         if (currentIndex < taskQueue.size()) {
             return taskQueue.get(currentIndex++);
         }

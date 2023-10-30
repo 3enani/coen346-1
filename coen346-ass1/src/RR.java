@@ -79,7 +79,7 @@ public class RR implements Algorithm {
 
 
     @Override
-    public Task pickNextTask() {
+    public Task pickNextTask(int currentTime) {
         if (!taskQueue.isEmpty()) {
             Task nextTask = taskQueue.get(0);
             taskQueue.remove(0);
