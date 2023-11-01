@@ -1,30 +1,38 @@
+import java.util.ArrayList;
+import java.util.List;
+
 public class PCB {
-
-    int pid;
+    int tid;
     String processStatus;
+    List<Task> childProcessesWaiting;
 
-    public PCB(int pid, String processStatus){
+    public PCB(int tid, String processStatus) {
         setProcessStatus(processStatus);
-        setPid(pid);
-        getProcessStatus();
-        getPid();
+        setTid(tid);
+        childProcessesWaiting = new ArrayList<>();
     }
 
-    public int getPid(){
-
-        System.out.println(pid);
-        return pid;
-    }
-    public void setPid(int pid){
-        this.pid = pid;
-    }
-
-    public String getProcessStatus(){
-        System.out.println(processStatus);
-        return processStatus;
-    }
-
-    public void setProcessStatus(String processStatus){
+    private void setProcessStatus(String processStatus) {
         this.processStatus = processStatus;
+    }
+
+    private void setTid(int tid) {
+        this.tid = tid;
+    }
+
+    public void addChildProcessToWaitQueue(Task childProcess) {
+        childProcessesWaiting.add(childProcess);
+    }
+
+    public void removeChildProcessFromWaitQueue(Task childProcess) {
+        childProcessesWaiting.remove(childProcess);
+    }
+
+    public boolean isWaitingForChildProcesses() {
+        return !childProcessesWaiting.isEmpty();
+    }
+
+    public int getTid() {
+        return tid;
     }
 }

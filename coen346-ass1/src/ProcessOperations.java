@@ -20,7 +20,7 @@ class ProcessManager implements ProcessOperations{
     @Override
     public void terminateProcess(int pid) throws Exception {
         for (int i = 0; i < processes.size(); i++){
-            if (processes.get(i).getPid() == pid){
+            if (processes.get(i).getTid() == pid){
                 PIDManager.releasePid(pid);
                 processes.remove(i);
                 return;

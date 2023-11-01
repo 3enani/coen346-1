@@ -1,18 +1,16 @@
 import java.util.*;
 import java.text.DecimalFormat;
+
 public class RR implements Algorithm {
     private List<Task> taskQueue;
     private int timeQuantum;
+    private Task currentTask;
 
-     public RR(List<Task> taskQueue,  int timeQuantum) {
-
-
+    public RR(List<Task> taskQueue, int timeQuantum) {
         this.taskQueue = taskQueue;
         this.timeQuantum = timeQuantum;
-
-         Collections.sort(this.taskQueue, Comparator.comparing(Task::getArrival));
-
-     }
+        Collections.sort(this.taskQueue, Comparator.comparing(Task::getArrival));
+    }
 
     @Override
     public void schedule() {
@@ -21,51 +19,80 @@ public class RR implements Algorithm {
         int completedTasks = 0;
         double totalWaitingTime = 0;
         double totalResponseTime = 0;
-        LinkedList<Task> readyQueue = new LinkedList<>(taskQueue);
+        LinkedList<Task> readyQueue = new LinkedList<>();
+        LinkedList<Task> waitingQueue = new LinkedList<>(taskQueue); // Separate waiting queue
 
         System.out.println("Round-Robin Scheduling with Time Quantum: " + timeQuantum);
 
-
-        while (!readyQueue.isEmpty()) {
-
-            Task currentTask = readyQueue.poll();
-
-            if (currentTask.getArrival() > currentTime) {
-                // Task arrives later, adjust the current time
-                currentTime = currentTask.getArrival();
+        while (completedTasks < taskQueue.size()) {
+            // Enqueue tasks with arrival time less than or equal to the current time
+            while (!waitingQueue.isEmpty() && waitingQueue.peek().getArrival() <= currentTime) {
+                readyQueue.add(waitingQueue.poll());
             }
-            int remainingBurst = currentTask.getBurst();
-            System.out.println("Time " + currentTime + ": Running task: " + currentTask.getName());
 
-            if (remainingBurst <= timeQuantum) {
-                currentTime += remainingBurst;
-                currentTask.setCompletionTime(currentTime);
-                System.out.println("Time " + currentTime + ": Completed task: " + currentTask.getName());
-                totalTurnaroundTime += currentTask.getCompletionTime() - currentTask.getArrival();
-                completedTasks++;
+            if (currentTask == null) {
+                if (readyQueue.isEmpty()) {
+                    // No tasks are ready to run, increase the current time
+                    System.out.println("Time " + currentTime + ": Idle");
+                    currentTime++;
+                } else {
+                    currentTask = readyQueue.poll();
+                    currentTask.setStartTime(currentTime);
+                    int remainingBurst = currentTask.getBurst();
+                    System.out.println("Time " + currentTime + ": Running task: " + currentTask.getName());
 
-                int waitingTime = currentTask.getCompletionTime() - currentTask.getArrival() - currentTask.getBurst();
-                currentTask.setWaitingTime(waitingTime);
-                totalWaitingTime += waitingTime;
-
-                int responseTime = Math.max(0, currentTask.getStartTime() - currentTask.getArrival());
-                currentTask.setResponseTime(responseTime);
-                totalResponseTime += responseTime;
-            } else {
-                // Task needs more time, enqueue it again
-
-                currentTime += timeQuantum;
-                    currentTask.decreaseBurstTime(timeQuantum);
-                    readyQueue.offer(currentTask);
+                    if (remainingBurst <= timeQuantum) {
+                        currentTime += remainingBurst;
+                        currentTask.setCompletionTime(currentTime);
+                        // Calculate turnaround time, waiting time, and response time here
+                        int turnaroundTime = currentTask.getCompletionTime() - currentTask.getArrival();
+                        int waitingTime = turnaroundTime - currentTask.getBurst();
+                        int responseTime = currentTask.getStartTime() - currentTask.getArrival();
+                        totalTurnaroundTime += turnaroundTime;
+                        totalWaitingTime += waitingTime;
+                        totalResponseTime += responseTime;
+                        completedTasks++;
+                        System.out.println("Time " + currentTime + ": Completed task: " + currentTask.getName());
+                        currentTask = null;
+                    } else {
+                        currentTime += timeQuantum;
+                        currentTask.decreaseBurstTime(timeQuantum);
+                        readyQueue.add(currentTask); // Re-enqueue the task
+                        currentTask = null;
+                    }
+                    printTaskStates(currentTime, currentTask, readyQueue, waitingQueue);
                 }
+            } else {
+                // Current task is running
+                int remainingBurst = currentTask.getBurst();
+                if (remainingBurst <= timeQuantum) {
+                    currentTime += remainingBurst;
+                    currentTask.setCompletionTime(currentTime);
+                    // Calculate turnaround time, waiting time, and response time here
+                    int turnaroundTime = currentTask.getCompletionTime() - currentTask.getArrival();
+                    int waitingTime = turnaroundTime - currentTask.getBurst();
+                    int responseTime = currentTask.getStartTime() - currentTask.getArrival();
+                    totalTurnaroundTime += turnaroundTime;
+                    totalWaitingTime += waitingTime;
+                    totalResponseTime += responseTime;
+                    completedTasks++;
 
-            printTaskStates(currentTime, readyQueue);
+                    // Mark the current task as completed.
+                    currentTask.markAsCompleted();
 
-            int turnaroundTime = currentTask.getCompletionTime() - currentTask.getArrival();
-            currentTask.setTurnaroundTime(turnaroundTime);
-
-            currentTask.setStartTime(currentTime);
+                    System.out.println("Time " + currentTime + ": Completed task: " + currentTask.getName());
+                    currentTask = null;
+                } else {
+                    currentTime += timeQuantum;
+                    currentTask.decreaseBurstTime(timeQuantum);
+                    readyQueue.add(currentTask); // Re-enqueue the task
+                    currentTask = null;
+                }
+                printTaskStates(currentTime, currentTask, readyQueue, waitingQueue);
+            }
         }
+
+        // Calculate and print average times
         double averageTurnaroundTime = totalTurnaroundTime / completedTasks;
         double averageWaitingTime = totalWaitingTime / completedTasks;
         double averageResponseTime = totalResponseTime / completedTasks;
@@ -76,42 +103,28 @@ public class RR implements Algorithm {
         System.out.println("Average Response Time: " + df.format(averageResponseTime));
     }
 
-
-
     @Override
     public Task pickNextTask(int currentTime) {
-        if (!taskQueue.isEmpty()) {
-            Task nextTask = taskQueue.get(0);
-            taskQueue.remove(0);
+        List<Task> remainingTasks = new ArrayList<>(taskQueue); // Create a copy of the taskQueue
+        if (!remainingTasks.isEmpty()) {
+            Task nextTask = remainingTasks.get(0);
+            remainingTasks.remove(0);
             return nextTask;
         }
         return null;
     }
 
-    private void printTaskStates(int currentTime, LinkedList<Task> readyQueue) {
-        System.out.print("Time " + currentTime + ": Running: " + (readyQueue.isEmpty() ? "-" : readyQueue.peek().getName()));
+    private void printTaskStates(int currentTime, Task currentTask, LinkedList<Task> readyQueue, LinkedList<Task> waitingQueue) {
+        System.out.print("Time " + currentTime + ": Running: " + (currentTask != null ? currentTask.getName() : "-"));
 
-        if (readyQueue.size() > 1) {
-            System.out.print(", Ready: ");
-            for (int i = 1; i < readyQueue.size(); i++) {
-                System.out.print(readyQueue.get(i).getName() + " ");
-            }
-        } else {
-            System.out.print(", Ready: -");
+        System.out.print(", Ready: ");
+        for (Task task : readyQueue) {
+            System.out.print(task.getName() + " ");
         }
 
         System.out.print(", Waiting: ");
-        boolean anyTasksWaiting = false;
-
-        for (Task task : taskQueue) {
-            if (task.getArrival() != -1 && task.getArrival() > currentTime && task.getArrival() <= currentTime + timeQuantum) {
-                System.out.print(task.getName() + " ");
-                anyTasksWaiting = true;
-            }
-        }
-
-        if (!anyTasksWaiting) {
-            System.out.print("-");
+        for (Task task : waitingQueue) {
+            System.out.print(task.getName() + " ");
         }
 
         System.out.println();

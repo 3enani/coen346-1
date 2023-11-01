@@ -6,14 +6,19 @@ import java.io.*;
 public class Driver
 {
     public static void main(String[] args) throws IOException {
-            int timeQuantum;
-            List<Task> queue = new ArrayList<Task>();
+        TaskManager taskManager = new TaskManager();
+
+        int timeQuantum;
+        List<Task> queue = new ArrayList<Task>();
+
+
 
             queue.add(new Task("P1", 1, 20, 0, new ArrayList<>(3)));
-            queue.add(new Task("P2", 2, 5, 4, new ArrayList<>(0)));
+            queue.add(new Task("P2", 2, 5, 4,new ArrayList<>(0)));
             queue.add(new Task("P3", 3, 10, 5, new ArrayList<>(0)));
             queue.add(new Task("P4", 3, 15, 6, new ArrayList<>(0)));
             queue.add(new Task("P5", 5, 10, 0, new ArrayList<>(0)));
+
 
 
 

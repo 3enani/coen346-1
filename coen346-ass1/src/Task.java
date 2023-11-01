@@ -1,5 +1,5 @@
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class Task
@@ -15,8 +15,13 @@ public class Task
     private int completionTime;
     private int startTime;
     private int responseTime;
-
     private List<Task> children;
+    private boolean completed;
+    private PCB parentPCB;
+    private Task parentTask;
+
+
+
 
     /**
      * We use an atomic integer to assign each task a unique task id.
@@ -29,6 +34,11 @@ public class Task
         this.burst = burst;
         this.arrival = arrival;
         this.children = children;
+        this.parentTask = parentTask;
+        this.parentPCB = parentPCB;
+
+        this.completed = false;
+
 
 
         this.tid = tidAllocator.getAndIncrement();
@@ -60,6 +70,10 @@ public class Task
     public int getArrival() {return arrival;}
     public int getStartTime() {return startTime;}
     public int getResponseTime() {return responseTime;}
+    public int getRemainingBurst() {return burst;}
+    public Task getParentTask() {
+        return parentTask;
+    }
 
     public void addChild (Task child) {
         children.add(child);
@@ -69,6 +83,9 @@ public class Task
         return children;
 }
 
+    public boolean isCompleted() {
+        return completed;}
+
     /**
      * Appropriate setters
      */
@@ -77,7 +94,9 @@ public class Task
 
         return priority;
     }
-
+    public void setParentTask(Task parentTask) {
+        this.parentTask = parentTask;
+    }
     public int setBurst(int burst) {
         this.burst = burst;
 
@@ -88,9 +107,16 @@ public class Task
         this.arrival = arrival;
         return arrival;
     }
+    public void setTid(int tid) {
+        this.tid = tid;
+    }
 
     public void setTurnaroundTime(int turnaround) {
         this.turnaround = turnaround;
+    }
+
+    public void markAsCompleted() {
+        completed = true;
     }
 
     public void setWaitingTime(int waitingTime) {
@@ -104,7 +130,9 @@ public class Task
     public void setStartTime(int startTime) {
         this.startTime = startTime;
     }
-
+    public void setRemainingBurst(int remainingBurst) {
+        this.burst = remainingBurst;
+    }
     public void decreaseBurstTime(int timeQuantum) {
         if (burst >= timeQuantum) {
             burst -= timeQuantum;
@@ -146,5 +174,9 @@ public class Task
                         "Tid: " + tid + "\n" +
                         "Priority: " + priority + "\n" +
                         "Burst: " + burst + "\n";
+    }
+
+    public void setCompleted(boolean b) {
+        this.completed = true;
     }
 }
